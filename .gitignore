@@ -1,0 +1,7 @@
+*.o
+client
+server
+a.out
+*.bin
+*.txt
+*.log
