@@ -5,3 +5,4 @@ a.out
 *.bin
 *.txt
 *.log
+run_tests
