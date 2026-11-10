@@ -1,4 +1,5 @@
 #include <UnitTest++/UnitTest++.h>
+#include <iostream>
 #include <fstream>
 #include <cstdio>
 #include <string>
@@ -23,37 +24,42 @@
     CHECK_EQUAL(waiting,resulting); \
 }
 
+// ==========================================
 // 1. ТЕСТЫ ДЛЯ CLIHandler
+// ==========================================
 SUITE(CLIHandlerTest) {
     TEST(HelpFlag) {
+        std::cout << "=== Модуль CLIHandler ===" << std::endl;
         CLIHandler cli;
         const char* argv[] = {"client", "-h", nullptr};
-        int argc = sizeof(argv) / sizeof(nullptr) - 1;
-        Params p = cli.parse(argc, const_cast<char**>(argv));
+        Params p = cli.parse(2, const_cast<char**>(argv));
         CHECK(p.help == true);
+        std::cout << "Тест 1.1: help=true" << std::endl;
     }
 
     TEST(RunDefaultFlag) {
         CLIHandler cli;
         const char* argv[] = {"client", "-r", nullptr};
-        int argc = sizeof(argv) / sizeof(nullptr) - 1;
-        Params p = cli.parse(argc, const_cast<char**>(argv));
+        Params p = cli.parse(2, const_cast<char**>(argv));
         CHECK(p.help == false);
         CHECK_EQUAL_STR("127.0.0.1", p.address);
         CHECK_EQUAL_STR("input.bin", p.inputFile);
         CHECK_EQUAL_STR("output.txt", p.outputFile);
+        std::cout << "Тест 2.1: help=false, address=127.0.0.1, input=input.bin, output=output.txt" << std::endl;
     }
 
     TEST(MissingArgsTriggersHelp) {
         CLIHandler cli;
         const char* argv[] = {"client", "-a", "192.168.1.1", nullptr}; 
-        int argc = sizeof(argv) / sizeof(nullptr) - 1;
-        Params p = cli.parse(argc, const_cast<char**>(argv));
+        Params p = cli.parse(3, const_cast<char**>(argv));
         CHECK(p.help == true);
+        std::cout << "Тест 1.2: help=true (отсутствуют обязательные параметры)" << std::endl;
     }
 }
 
+// ==========================================
 // 2. ТЕСТЫ ДЛЯ DataReader
+// ==========================================
 struct BinaryDataFixture {
     const std::string validFile = "test_valid_data.bin";
     const std::string configFile = "test_config.conf";
@@ -69,6 +75,7 @@ struct BinaryDataFixture {
 
         std::ofstream f2(configFile);
         f2 << "user:P@ssW0rd\n";
+        f2.close();
     }
     ~BinaryDataFixture() {
         std::remove(validFile.c_str());
@@ -78,36 +85,47 @@ struct BinaryDataFixture {
 
 SUITE(DataReaderTest) {
     TEST(NoFile) {
+        std::cout << "=== Модуль DataReader ===" << std::endl;
         CHECK_THROW(DataReader::readBinaryData("not_exist.bin"), std::runtime_error);
+        std::cout << "Тест 1.2: Исключение IOError (файл не найден)" << std::endl;
     }
     TEST_FIXTURE(BinaryDataFixture, ValidData) {
         BinaryData data = DataReader::readBinaryData(validFile);
         REQUIRE CHECK_EQUAL(1, data.size());
         REQUIRE CHECK_EQUAL(3, data[0].size());
         CHECK_CLOSE(1.0f, data[0][0], 0.001f);
+        std::cout << "Тест 1.1: readBinaryData вернул 1 вектор, размер 3" << std::endl;
     }
     TEST_FIXTURE(BinaryDataFixture, ValidConfig) {
         auto creds = DataReader::readConfig(configFile);
         CHECK_EQUAL_STR("user", creds.first);
         CHECK_EQUAL_STR("P@ssW0rd", creds.second);
+        std::cout << "Тест 2.1: readConfig вернул логин 'user', пароль 'P@ssW0rd'" << std::endl;
     }
 }
 
+// ==========================================
 // 3. ТЕСТЫ ДЛЯ CryptoAuthModule
+// ==========================================
 SUITE(CryptoAuthModuleTest) {
     TEST(SaltLength) {
+        std::cout << "=== Модуль CryptoAuthModule ===" << std::endl;
         CryptoAuthModule auth;
         std::string salt = auth.generateSalt();
         CHECK_EQUAL(16, salt.size());
+        std::cout << "Тест 1.1: Длина соли = 16" << std::endl;
     }
     TEST(HashGeneration) {
         CryptoAuthModule auth;
         std::string expected = "90A3ED9E32B2AAF4C61C410EB925426119E1A9DC53D4286ADE99A809";
         CHECK_EQUAL_STR(expected, auth.generateSHA224("test"));
+        std::cout << "Тест 2.1: SHA-224 хеш совпадает с эталоном" << std::endl;
     }
 }
 
+// ==========================================
 // 4. ТЕСТЫ ДЛЯ ClientServer
+// ==========================================
 struct FakeServer {
     int port = 45678;
     int server_fd;
@@ -154,13 +172,14 @@ struct FakeServer {
 
 SUITE(ClientServerTest) {
     TEST(ConnectionRefused) {
+        std::cout << "=== Модуль ClientServer ===" << std::endl;
         ClientServer comm("127.0.0.1", 9999);
         CHECK_THROW(comm.connectToServer(), std::runtime_error);
+        std::cout << "Тест 1.1: Исключение std::runtime_error (порт закрыт)" << std::endl;
     }
 
     TEST_FIXTURE(FakeServer, FullExchange) {
         ClientServer comm("127.0.0.1", port);
-        
         comm.connectToServer();
         
         comm.sendString("HELLO");
@@ -172,6 +191,7 @@ SUITE(ClientServerTest) {
         std::vector<float> res = comm.receiveResult();
         REQUIRE CHECK_EQUAL(1, res.size());
         CHECK_CLOSE(6.0f, res[0], 0.001f);
+        std::cout << "Тест 1.2: Успешный обмен (sendString -> 'OK', sendData -> сумма 6.0)" << std::endl;
     }
 }
 

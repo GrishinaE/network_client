@@ -18,7 +18,7 @@ $(APP_TARGET): $(APP_OBJS)
 test: $(TEST_TARGET)
 
 $(TEST_TARGET): $(TEST_OBJS)
-	$(CXX) $(CXXFLAGS) -pthread -o $@ $^ $(LIBS) -lunittest++
+	$(CXX) $(CXXFLAGS) -pthread -o $@ $^ $(LIBS) -lUnitTest++
 
 %.o: %.cpp
 	$(CXX) $(CXXFLAGS) -c $< -o $@
